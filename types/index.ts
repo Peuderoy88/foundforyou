@@ -11,7 +11,9 @@ export interface User {
   createdAt: Date
   totalSpent: number
   totalCreations: number
+  totalOrders: number
   badges: string[]
+  status: 'active' | 'suspended' | 'banned' | 'deleted'
   socialLinks?: SocialLinks
   preferences?: UserPreferences
   roles: ('user' | 'admin')[]

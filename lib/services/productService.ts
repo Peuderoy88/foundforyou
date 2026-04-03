@@ -95,7 +95,7 @@ export async function getProducts(
   const products: Product[] = []
   let nextDoc: QueryDocumentSnapshot<DocumentData> | null = null
 
-  snapshot.forEach((docSnap, index) => {
+  snapshot.docs.forEach((docSnap, index) => {
     if (index < (options.limit || 24)) {
       products.push({ id: docSnap.id, ...docSnap.data() } as Product)
     } else {
@@ -266,7 +266,7 @@ export async function incrementProductSold(productId: string, quantity: number =
  */
 export async function getRelatedProducts(
   productId: string,
-  limit: number = 4
+  limitCount: number = 4
 ): Promise<Product[]> {
   const product = await getProductById(productId)
   if (!product) {
@@ -278,7 +278,7 @@ export async function getRelatedProducts(
     where('status', '==', 'available'),
     where('template', '==', product.template),
     orderBy('ratings.avgRating', 'desc'),
-    limit(limit + 1),
+    limit(limitCount + 1),
   ]
 
   const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints)
@@ -286,7 +286,7 @@ export async function getRelatedProducts(
 
   return snapshot.docs
     .filter((doc) => doc.id !== productId)
-    .slice(0, limit)
+    .slice(0, limitCount)
     .map((doc) => ({ id: doc.id, ...doc.data() } as Product))
 }
 

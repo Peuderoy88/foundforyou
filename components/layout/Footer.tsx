@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Mail, Instagram, Twitter, Facebook } from 'lucide-react'
+import { Mail, Heart, Share2, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Footer() {
@@ -136,14 +136,17 @@ export default function Footer() {
         {/* Social & Copyright */}
         <div className="py-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
           <div className="flex gap-6 mb-4 md:mb-0">
-            <a href="#" className="text-gray-400 hover:text-white transition">
-              <Instagram className="w-5 h-5" />
+            <a href="#" className="text-gray-400 hover:text-white transition" title="Newsletter">
+              <Mail className="w-5 h-5" />
             </a>
-            <a href="#" className="text-gray-400 hover:text-white transition">
-              <Twitter className="w-5 h-5" />
+            <a href="#" className="text-gray-400 hover:text-white transition" title="Like us">
+              <Heart className="w-5 h-5" />
             </a>
-            <a href="#" className="text-gray-400 hover:text-white transition">
-              <Facebook className="w-5 h-5" />
+            <a href="#" className="text-gray-400 hover:text-white transition" title="Share">
+              <Share2 className="w-5 h-5" />
+            </a>
+            <a href="#" className="text-gray-400 hover:text-white transition" title="Website">
+              <ExternalLink className="w-5 h-5" />
             </a>
           </div>
           <p className="text-gray-400 text-sm">
