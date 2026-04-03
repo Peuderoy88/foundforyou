@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny(['admin']);
+    }
+
+    // ============================================
+    // USERS COLLECTION
+    // ============================================
+    // Users can read their own profile
+    // Admins can read all profiles
+    // Users can write their own profile
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ============================================
+    // PRODUCTS COLLECTION
+    // ============================================
+    // Anyone can read public products
+    // Authenticated users can create products (draft)
+    // Owners/Admin can update/delete their products
+    match /products/{productId} {
+      allow read: if resource.data.visibility == 'public'
+                   || (isAuthenticated() && (isOwner(resource.data.artistId) || isAdmin()));
+      allow create: if isAuthenticated();
+      allow update: if isOwner(resource.data.artistId) || isAdmin();
+      allow delete: if isOwner(resource.data.artistId) || isAdmin();
+
+      // Subcollection: Reviews
+      match /reviews/{reviewId} {
+        allow read: if true; // Public reviews
+        allow create: if isAuthenticated();
+        allow update: if isOwner(resource.data.userId) || isAdmin();
+        allow delete: if isOwner(resource.data.userId) || isAdmin();
+      }
+    }
+
+    // ============================================
+    // ORDERS COLLECTION
+    // ============================================
+    // Users can read their own orders
+    // Admins can read all orders
+    // Orders are created by system (API)
+    match /orders/{orderId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated(); // Restricted by API validation
+      allow update: if isAdmin(); // Only admins can update order status
+      allow delete: if isAdmin();
+    }
+
+    // ============================================
+    // AI GENERATIONS COLLECTION
+    // ============================================
+    // Users can read their own generations
+    // System creates generations (API)
+    match /aiGenerations/{generationId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuthenticated(); // Restricted by API
+      allow update: if isOwner(resource.data.userId) || isAdmin();
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ============================================
+    // REVIEWS COLLECTION
+    // ============================================
+    // Anyone can read reviews
+    // Authenticated users can create reviews
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isOwner(resource.data.userId) || isAdmin();
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // ============================================
+    // ANALYTICS COLLECTION
+    // ============================================
+    // Only admins can read/write analytics
+    match /analytics/{analyticsId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // CONFIG COLLECTION
+    // ============================================
+    // Only admins can read/write config
+    match /config/{configDoc} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ============================================
+    // DEFAULT: DENY ALL
+    // ============================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
