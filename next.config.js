@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'export', // Enable static export for GitHub Pages
+  basePath: '/foundforyou', // GitHub Pages deploys to /repo-name
   images: {
+    unoptimized: true, // Required for static export
     remotePatterns: [
       {
         protocol: 'https',
