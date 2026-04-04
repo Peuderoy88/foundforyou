@@ -1,11 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { Search, ShoppingCart, Menu, X } from 'lucide-react'
+import { Search, ShoppingCart, Menu, X, User } from 'lucide-react'
 import { useState } from 'react'
+import { useCart } from '@/context/CartContext'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
+  const { itemCount } = useCart()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white shadow-sm">
@@ -43,6 +45,10 @@ export default function Header() {
               Gallery
             </Link>
             <div className="border-l border-gray-300 pl-6 flex gap-4">
+              <Link href="/profile" className="text-gray-600 hover:text-purple-600 transition flex items-center gap-1">
+                <User className="w-4 h-4" />
+                Profile
+              </Link>
               <Link href="/auth/login" className="text-gray-600 hover:text-purple-600 transition">
                 Login
               </Link>
@@ -56,9 +62,11 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <Link href="/cart" className="relative">
               <ShoppingCart className="w-6 h-6 text-gray-600 hover:text-purple-600 transition" />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                0
-              </span>
+              {itemCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {itemCount}
+                </span>
+              )}
             </Link>
 
             {/* Mobile Menu Button */}
@@ -82,6 +90,9 @@ export default function Header() {
             </Link>
             <Link href="/gallery" className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded">
               Gallery
+            </Link>
+            <Link href="/profile" className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded">
+              Profile
             </Link>
             <Link href="/auth/login" className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded">
               Login
