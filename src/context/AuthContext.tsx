@@ -1,4 +1,16 @@
+'use client'
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  updateProfile as updateFirebaseProfile,
+} from 'firebase/auth'
+import { auth } from '@/src/lib/firebase'
+import { createUserDocument, getUserDocument, updateUserDocument } from '@/src/lib/services/firebaseService'
 
 export interface User {
   id: string
@@ -30,23 +42,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Initialize auth state from localStorage on mount
+  // Listen to Firebase Auth state changes
   useEffect(() => {
-    const initializeAuth = async () => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
-        const storedUser = localStorage.getItem('currentUser')
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser)
-          setUser(parsedUser)
+        if (firebaseUser) {
+          // User is logged in - fetch from Firestore
+          const userData = await getUserDocument(firebaseUser.uid)
+          if (userData) {
+            setUser(userData as User)
+          } else {
+            // Fallback if Firestore doc doesn't exist
+            const newUser: User = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || '',
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+              role: 'user',
+              badges: [],
+              createdAt: new Date(firebaseUser.metadata?.creationTime || 0),
+              isAdmin: false,
+            }
+            setUser(newUser)
+          }
+        } else {
+          setUser(null)
         }
       } catch (err) {
-        console.error('Failed to restore auth state:', err)
+        console.error('Error fetching user data:', err)
+        setUser(null)
       } finally {
         setLoading(false)
       }
-    }
+    })
 
-    initializeAuth()
+    return () => unsubscribe()
   }, [])
 
   const signUp = async (email: string, password: string, name: string) => {
@@ -54,12 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
       setLoading(true)
 
-      // TODO: Replace with Firebase Auth
-      // const { user: authUser } = await auth.createUserWithEmailAndPassword(email, password)
+      const { user: authUser } = await createUserWithEmailAndPassword(auth, email, password)
 
-      // For now, create mock user
+      // Update display name
+      await updateFirebaseProfile(authUser, { displayName: name })
+
+      // Create user document in Firestore
       const newUser: User = {
-        id: `user-${Date.now()}`,
+        id: authUser.uid,
         email,
         name,
         role: 'user',
@@ -68,12 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAdmin: false,
       }
 
-      // Store in localStorage
-      localStorage.setItem('currentUser', JSON.stringify(newUser))
+      await createUserDocument(authUser.uid, newUser)
       setUser(newUser)
-
-      // TODO: Create Firestore document
-      // await createUserDocument(newUser)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to sign up'
       setError(message)
@@ -88,25 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
       setLoading(true)
 
-      // TODO: Replace with Firebase Auth
-      // const { user: authUser } = await auth.signInWithEmailAndPassword(email, password)
+      const { user: authUser } = await signInWithEmailAndPassword(auth, email, password)
 
-      // For now, check localStorage for demo users
-      const mockUser: User = {
-        id: `user-${Date.now()}`,
-        email,
-        name: email.split('@')[0],
-        role: email.includes('admin') ? 'admin' : 'user',
-        badges: email.includes('admin') ? ['admin'] : [],
-        createdAt: new Date(),
-        isAdmin: email.includes('admin'),
+      // Fetch user document from Firestore
+      const userData = await getUserDocument(authUser.uid)
+      if (userData) {
+        setUser(userData as User)
       }
-
-      localStorage.setItem('currentUser', JSON.stringify(mockUser))
-      setUser(mockUser)
-
-      // TODO: Fetch user document from Firestore
-      // const userDoc = await getUserDocument(authUser.uid)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to sign in'
       setError(message)
@@ -121,10 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
       setLoading(true)
 
-      // TODO: Replace with Firebase Auth
-      // await auth.signOut()
-
-      localStorage.removeItem('currentUser')
+      await firebaseSignOut(auth)
       setUser(null)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to sign out'
@@ -140,21 +152,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
       setLoading(true)
 
-      // TODO: Implement Firebase Google Auth
-      // const { user: authUser } = await signInWithPopup(auth, googleProvider)
-
-      const mockUser: User = {
-        id: `user-${Date.now()}`,
-        email: 'user@google.com',
-        name: 'Google User',
-        role: 'user',
-        badges: [],
-        createdAt: new Date(),
-        isAdmin: false,
-      }
-
-      localStorage.setItem('currentUser', JSON.stringify(mockUser))
-      setUser(mockUser)
+      // TODO: Implement Firebase Google Auth with GoogleAuthProvider
+      // For now, throw error
+      throw new Error('Google authentication not yet implemented')
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to sign in with Google'
       setError(message)
@@ -169,10 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null)
       setLoading(true)
 
-      // TODO: Replace with Firebase Auth
-      // await auth.sendPasswordResetEmail(email)
-
-      console.log('Password reset email sent to:', email)
+      await sendPasswordResetEmail(auth, email)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to reset password'
       setError(message)
@@ -191,12 +188,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const updatedUser = { ...user, ...updates }
 
-      // Update localStorage
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser))
+      // Update Firestore document
+      await updateUserDocument(user.id, updates)
       setUser(updatedUser)
-
-      // TODO: Update Firestore document
-      // await updateUserDocument(user.id, updates)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update profile'
       setError(message)
