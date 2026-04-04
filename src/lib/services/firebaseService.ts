@@ -15,6 +15,7 @@ import {
   addDoc,
   WriteBatch,
   writeBatch,
+  arrayUnion,
 } from 'firebase/firestore'
 import { firestore } from '@/src/lib/firebase'
 
@@ -286,13 +287,75 @@ export const getUserAIGenerations = async (userId: string) => {
 // BATCH OPERATIONS
 // ============================================
 
-export const executeBatch = async (callback: (batch: WriteBatch) => void) => {
+// ============================================
+// CHAT OPERATIONS
+// ============================================
+
+export const createChatSession = async (userId: string) => {
   try {
-    const batch = writeBatch(firestore)
-    callback(batch)
-    await batch.commit()
+    const docRef = await addDoc(collection(firestore, 'chatSessions'), {
+      userId,
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    return docRef.id
   } catch (error) {
-    console.error('Error executing batch:', error)
+    console.error('Error creating chat session:', error)
+    throw error
+  }
+}
+
+export const getChatSession = async (sessionId: string) => {
+  try {
+    const docRef = doc(firestore, 'chatSessions', sessionId)
+    const docSnap = await getDoc(docRef)
+    return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } : null
+  } catch (error) {
+    console.error('Error getting chat session:', error)
+    throw error
+  }
+}
+
+export const getUserChatSessions = async (userId: string) => {
+  try {
+    const q = query(
+      collection(firestore, 'chatSessions'),
+      where('userId', '==', userId),
+      orderBy('updatedAt', 'desc'),
+    )
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+  } catch (error) {
+    console.error('Error getting user chat sessions:', error)
+    throw error
+  }
+}
+
+export const addChatMessage = async (
+  sessionId: string,
+  message: { role: 'user' | 'assistant'; content: string; timestamp?: Date },
+) => {
+  try {
+    const sessionRef = doc(firestore, 'chatSessions', sessionId)
+    await updateDoc(sessionRef, {
+      messages: arrayUnion({
+        ...message,
+        timestamp: message.timestamp || new Date(),
+      }),
+      updatedAt: new Date(),
+    })
+  } catch (error) {
+    console.error('Error adding chat message:', error)
+    throw error
+  }
+}
+
+export const deleteChatSession = async (sessionId: string) => {
+  try {
+    await deleteDoc(doc(firestore, 'chatSessions', sessionId))
+  } catch (error) {
+    console.error('Error deleting chat session:', error)
     throw error
   }
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Search, ShoppingCart, Menu, X, User } from 'lucide-react'
+import { Search, ShoppingCart, Menu, X, User, HelpCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useCart } from '@/src/context/CartContext'
 
@@ -44,6 +44,10 @@ export default function Header() {
             </Link>
             <Link href="/gallery" className="text-gray-600 hover:text-purple-600 transition">
               Gallery
+            </Link>
+            <Link href="/support" className="text-gray-600 hover:text-purple-600 transition flex items-center gap-1">
+              <HelpCircle className="w-4 h-4" />
+              Support
             </Link>
             <div className="border-l border-gray-300 pl-6 flex gap-4">
               <Link href="/profile" className="text-gray-600 hover:text-purple-600 transition flex items-center gap-1">
@@ -91,6 +95,9 @@ export default function Header() {
             </Link>
             <Link href="/gallery" className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded">
               Gallery
+            </Link>
+            <Link href="/support" className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded">
+              Support
             </Link>
             <Link href="/profile" className="block px-4 py-2 text-gray-600 hover:bg-gray-50 rounded">
               Profile
