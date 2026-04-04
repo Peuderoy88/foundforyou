@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { Search, ShoppingCart, Menu, X, User } from 'lucide-react'
 import { useState } from 'react'
-import { useCart } from '@/context/CartContext'
+import { useCart } from '@/src/context/CartContext'
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
-  const { itemCount } = useCart()
+  const { getItemCount } = useCart()
+  const itemCount = getItemCount()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-200 bg-white shadow-sm">
