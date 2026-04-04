@@ -3,6 +3,7 @@
 import { ReactNode } from 'react'
 import { AuthProvider } from '@/src/context/AuthContext'
 import { CartProvider } from '@/src/context/CartContext'
+import { ChatWidget } from '@/src/components/support/ChatWidget'
 import Header from './Header'
 import Footer from './Footer'
 
@@ -15,6 +16,7 @@ export function Providers({ children }: { children: ReactNode }) {
           {children}
         </main>
         <Footer />
+        <ChatWidget />
       </CartProvider>
     </AuthProvider>
   )

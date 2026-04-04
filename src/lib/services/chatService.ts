@@ -34,6 +34,32 @@ export interface ChatSession {
   updatedAt: Date
 }
 
+// Quick responses for common queries (helps reduce API calls)
+const QUICK_RESPONSES: { [key: string]: string } = {
+  ciao: 'Ciao! 👋 Sono l\'assistente di FoundForYou. Come posso aiutarti oggi?',
+  ordine: 'Puoi tracciare il tuo ordine nella sezione "Il Mio Profilo" oppure condividi il numero dell\'ordine e ti aiuterò!',
+  spedizione:
+    'Le spedizioni solitamente avvengono entro 3-5 giorni lavorativi. La consegna arriva in 7-10 giorni lavorativi dalla spedizione.',
+  prezzo: 'I nostri prezzi variano in base al tipo di prodotto e al livello di personalizzazione. Visita il negozio per una lista completa!',
+  rimborso:
+    'Offriamo resi gratuiti entro 30 giorni. Il prodotto deve essere non utilizzato e nella confezione originale. Contattaci per i dettagli!',
+}
+
+/**
+ * Check if the message matches a quick response pattern
+ */
+const checkQuickResponse = (message: string): string | null => {
+  const lowerMessage = message.toLowerCase().trim()
+
+  for (const [keyword, response] of Object.entries(QUICK_RESPONSES)) {
+    if (lowerMessage.includes(keyword)) {
+      return response
+    }
+  }
+
+  return null
+}
+
 /**
  * Send a message to the customer service AI
  * @param userMessage The user's message
@@ -45,6 +71,12 @@ export const sendCustomerServiceMessage = async (
   conversationHistory: ChatMessage[] = [],
 ): Promise<string> => {
   try {
+    // Check for quick responses first
+    const quickResponse = checkQuickResponse(userMessage)
+    if (quickResponse) {
+      return quickResponse
+    }
+
     const messages = [
       ...conversationHistory.map((msg) => ({
         role: msg.role as 'user' | 'assistant',

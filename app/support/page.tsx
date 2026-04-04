@@ -38,7 +38,6 @@ export default function SupportPage() {
 
     if (!input.trim()) return
 
-    // Add user message to chat
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -47,24 +46,60 @@ export default function SupportPage() {
     }
 
     setMessages((prev) => [...prev, userMessage])
+    const userInput = input
     setInput('')
     setLoading(true)
 
     try {
-      // TODO: Replace with actual API call to /api/support/chat
-      // For now, simulate AI response
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Get conversation history for context
+      const conversationHistory = messages
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }))
+
+      // Call the API endpoint
+      const response = await fetch('/api/support/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          userId: user?.id,
+          message: userInput,
+          conversationHistory,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get response from support AI')
+      }
+
+      const data = await response.json()
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: `Ho ricevuto il tuo messaggio: "${input}"\n\nQuesta è una risposta di esempio. In produzione, questo sarà alimentato da Claude AI per fornire risposte intelligenti e personalizzate al tuo problema di servizio clienti.`,
+        content: data.message,
         timestamp: new Date(),
       }
 
       setMessages((prev) => [...prev, assistantMessage])
     } catch (error) {
       console.error('Error sending message:', error)
+
+      // Show error message in chat
+      const errorMessage: Message = {
+        id: (Date.now() + 2).toString(),
+        role: 'assistant',
+        content:
+          'Mi scusa, non sono riuscito a processare la tua richiesta. Per favore riprova o contattaci direttamente tramite email o telefono.',
+        timestamp: new Date(),
+      }
+
+      setMessages((prev) => [...prev, errorMessage])
     } finally {
       setLoading(false)
     }
