@@ -2,7 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Heart, Share2, ShoppingCart, Download, MessageSquare } from 'lucide-react'
+import { useCart } from '@/context/CartContext'
 
 interface Review {
   id: string
@@ -76,14 +78,27 @@ const mockProduct = {
 }
 
 export default function ProductPage() {
+  const router = useRouter()
+  const { addItem } = useCart()
   const [quantity, setQuantity] = useState(1)
   const [isFavorited, setIsFavorited] = useState(false)
+  const [addedToCart, setAddedToCart] = useState(false)
 
   const isOutOfStock = mockProduct.remaining === 0
 
   const handleAddToCart = () => {
     if (!isOutOfStock) {
-      console.log(`Added ${quantity} of ${mockProduct.title} to cart`)
+      addItem({
+        id: mockProduct.id,
+        title: mockProduct.title,
+        price: mockProduct.price,
+        image: mockProduct.image,
+        quantity,
+        productType: mockProduct.category,
+        style: mockProduct.style,
+      })
+      setAddedToCart(true)
+      setTimeout(() => setAddedToCart(false), 2000)
     }
   }
 
@@ -241,11 +256,13 @@ export default function ProductPage() {
                   className={`flex-1 flex items-center justify-center gap-2 px-8 py-3 rounded-lg font-semibold transition ${
                     isOutOfStock
                       ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700'
+                      : addedToCart
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:from-cyan-600 hover:to-blue-700'
                   }`}
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                  {isOutOfStock ? 'Out of Stock' : addedToCart ? '✓ Added to Cart' : 'Add to Cart'}
                 </button>
               </div>
 
